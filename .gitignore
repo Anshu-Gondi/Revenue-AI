@@ -1,0 +1,68 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+*.log
+*.sqlite3
+*.db
+*.pkl
+db.sqlite3
+
+# --- Django Static/Media ---
+staticfiles/
+media/
+
+# --- Environments ---
+myenv/
+env/
+venv/
+ENV/
+.env
+.env.*
+
+# --- VS Code / JetBrains ---
+.vscode/
+.idea/
+
+# --- Frontend (Vite + TypeScript) ---
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+.vite/
+
+# --- Build Artifacts ---
+build/
+*.tgz
+*.gz
+*.whl
+*.tar
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# --- Testing / Coverage ---
+coverage/
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+junit.xml
+
+# --- OS Junk ---
+.DS_Store
+Thumbs.db
+
+# --- Git Conflicts ---
+*.orig
+
+# --- Other Temporary Files ---
+*.bak
+*.swp

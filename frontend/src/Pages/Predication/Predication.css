@@ -1,0 +1,217 @@
+
+/* 1. Global Box‑Sizing */
+.prediction-section,
+.prediction-section * {
+  box-sizing: border-box;
+}
+
+/* 2. Theme Variables */
+:root {
+  --bg-start:     #1a1e3b;
+  --bg-end:       #0d0f1e;
+  --accent:       #00e5ff;
+  --text:         #e0e0e0;
+  --text-alt:     #c7f5ff;
+  --card-bg:      rgba(255,255,255,0.04);
+  --radius-lg:    16px;
+  --radius-md:    12px;
+  --spacing-lg:   2rem;
+  --spacing-md:   1.5rem;
+  --spacing-sm:   1rem;
+  --transition:   0.3s ease;
+}
+
+/* 3. Main Container */
+.prediction-section {
+  max-width: 1000px;
+  margin: 4rem auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: linear-gradient(145deg, var(--bg-start), var(--bg-end));
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  font-family: 'Segoe UI', sans-serif;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-gap: var(--spacing-lg);
+  animation: fadeIn 0.8s var(--transition);
+}
+
+/* 4. Headings */
+.prediction-title {
+  grid-column: 1 / -1;
+  font-size: 2.5rem;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  text-shadow: 0 0 10px #00e5ff88;
+  letter-spacing: 1px;
+}
+.prediction-section h2 {
+  grid-column: 1 / -1;
+  font-size: 2rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--spacing-md);
+}
+
+/* 5. Inputs & Buttons */
+input[type="file"],
+select,
+button,
+#noteInput,
+#filterInput {
+  background: #15182e;
+  color: var(--text);
+  border: 1px solid #2c2f4a;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 400px;
+  transition: background var(--transition),
+              color var(--transition),
+              transform var(--transition),
+              box-shadow var(--transition);
+}
+
+input[type="file"]:hover,
+select:hover,
+button:hover,
+#noteInput:hover,
+#filterInput:hover {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.03);
+  box-shadow: 0 4px 15px rgba(0,229,255,0.3);
+  cursor: pointer;
+}
+
+button {
+  font-weight: bold;
+}
+
+/* 6. Output Cards */
+.eda-output,
+.train-output,
+.save-output {
+  grid-column: 1 / -1;
+  background: var(--card-bg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin-top: var(--spacing-md);
+  line-height: 1.5;
+  position: relative;
+  min-height: 110px;
+}
+
+.eda-output h3,
+.train-output h3 {
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 0.3rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.eda-output pre,
+.train-output pre {
+  background: #0f1020;
+  color: var(--text-alt);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+/* 7. Images */
+.eda-output img,
+.train-output img {
+  display: block;
+  max-width: 100%;
+  margin-top: var(--spacing-md);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 10px #00e5ff44;
+}
+
+/* 8. Save Results Row (note + button) */
+#noteInput { max-width: calc(60% - 0.5rem); margin-right: 0.5rem; }
+#saveBtn   { max-width: calc(40% - 0.5rem); background: var(--accent); color: #000; }
+
+/* 9. Saved Results Row (filter + button) */
+#filterInput { max-width: calc(70% - 0.5rem); margin-right: 0.5rem; }
+#loadResultsBtn { max-width: calc(30% - 0.5rem); background: var(--accent); color: #000; }
+
+/* 10. Result Cards */
+.result-card {
+  background: linear-gradient(145deg, var(--bg-start), var(--bg-end));
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: 0 5px 15px rgba(0,229,255,0.1);
+  transition: transform var(--transition);
+  margin-bottom: var(--spacing-md);
+}
+.result-card:hover {
+  transform: scale(1.01);
+}
+
+/* Buttons within cards */
+.result-card button {
+  background: #15182e;
+  border: 1px solid #2c2f4a;
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: var(--transition);
+  margin: 0.25rem 0.25rem 0 0;
+}
+.result-card button:hover {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.05);
+}
+
+/* 11. Pagination */
+#paginationControls {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-lg) 0;
+}
+#paginationControls button {
+  background: #15182e;
+  border: 1px solid #2c2f4a;
+  color: var(--text);
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+#paginationControls button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.05);
+}
+#paginationControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 12. Responsive */
+@media (max-width: 768px) {
+  .prediction-section {
+    display: block;
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+  input[type="file"], select, button,
+  #noteInput, #saveBtn,
+  #filterInput, #loadResultsBtn {
+    max-width: 100%;
+    margin: var(--spacing-sm) 0;
+  }
+}
+@media (max-width: 480px) {
+  .prediction-title { font-size: 2rem; }
+  .prediction-section h2 { font-size: 1.75rem; }
+}

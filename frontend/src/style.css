@@ -1,0 +1,115 @@
+/* 1. Theme Variables */
+:root {
+  --bg-gradient:       linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  --card-bg:           rgba(255,255,255,0.05);
+  --accent-shadow:     rgba(0,229,255,0.1);
+  --radius-lg:         12px;
+  --padding-lg:        4rem 2rem;
+  --max-width:         960px;
+
+  --font-base:         "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --color-text:        #fff;
+
+  --anim-duration:     0.6s;
+  --anim-ease:         ease-in-out;
+  --fade-delay-base:   0.3s;
+  --flip-perspective:  1000px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-base);
+  background: var(--bg-gradient);
+  color: var(--color-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 3. Page container */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  perspective: var(--flip-perspective);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 4. Main content card */
+.main-content {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 20px var(--accent-shadow);
+  padding: var(--padding-lg);
+  width: 90%;
+  max-width: var(--max-width);
+  margin: 2rem auto 0;
+  text-align: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: fadeInUp var(--anim-duration) var(--anim-ease) both;
+}
+
+/* 5. Hero typography */
+.hero-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  animation: fadeIn var(--anim-duration) var(--anim-ease) both;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  animation: fadeIn var(--anim-duration) var(--anim-ease) both;
+  animation-delay: calc(var(--fade-delay-base) * 1.2);
+}
+
+/* 6. Button wrapper */
+.button-container {
+  display: flex;
+  justify-content: center;
+  animation: fadeInUp var(--anim-duration) var(--anim-ease) both;
+  animation-delay: calc(var(--fade-delay-base) * 1.5);
+}
+
+/* 7. Flip animations */
+.page-flip-left  { animation: flip var(--anim-duration) var(--anim-ease) both reverse; }
+.page-flip-right { animation: flip var(--anim-duration) var(--anim-ease) both; }
+
+@keyframes flip {
+  from {
+    transform: rotateY(var(--flip-angle, 90deg));
+    opacity: 0;
+  }
+  to {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+}
+/* Setup for left vs right */
+.page-flip-left  { --flip-angle:  90deg; }
+.page-flip-right { --flip-angle: -90deg; }
+
+/* 8. Fade‑in and fade‑up */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 9. Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-title { font-size: 2rem; }
+  .hero-subtitle { font-size: 1.1rem; }
+  .main-content { padding: 2rem 1rem; }
+}

@@ -1,0 +1,135 @@
+/* Gooey Button — Enhanced */
+
+/* 1. Scoped box-sizing */
+.gooey-button-container,
+.gooey-button-container * {
+  box-sizing: border-box;
+}
+
+/* 2. Theme Variables */
+:root {
+  --goo-color:               #00f6ff;
+  --button-text-color:       #fff;
+  --button-radius:           50px;
+  --button-padding:          1rem 2rem;
+  --button-font-size:        1.2rem;
+  --bubble-size:             20px;
+  --bubble-duration:         2s;
+  --bubble-opacity:          0.6;
+  --bubble-scale-max:        1.8;
+  --transition-duration:     0.2s;
+}
+
+/* 3. Hidden filter definition */
+.goo-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 4. Container applying goo filter */
+.gooey-button-container {
+  filter: url('#goo');
+  display: inline-block;
+  position: relative;
+  margin: 1rem;
+}
+
+/* 5. Button base styles */
+.gooey-button {
+  display: inline-block;
+  padding: var(--button-padding);
+  font-size: var(--button-font-size);
+  color: var(--button-text-color);
+  background: var(--goo-color);
+  border: none;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  transition:
+    transform var(--transition-duration) ease,
+    box-shadow var(--transition-duration) ease;
+}
+
+/* 6. Hover / focus */
+.gooey-button:hover,
+.gooey-button:focus {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 246, 255, 0.6);
+  outline: 2px solid rgba(0, 246, 255, 0.8);
+  outline-offset: 4px;
+}
+
+/* 7. Active (press) */
+.gooey-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 246, 255, 0.8);
+}
+
+/* 8. Bubble container */
+.bubbles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 9. Bubble base styles */
+.bubble {
+  position: absolute;
+  width: var(--bubble-size);
+  height: var(--bubble-size);
+  background: var(--goo-color);
+  border-radius: 50%;
+  opacity: var(--bubble-opacity);
+  animation: bubbleAnim var(--bubble-duration) infinite ease-in-out;
+  transform-origin: center;
+}
+
+/* 10. Bubble positions */
+.bubble:nth-child(1) { top: -10%;   left: 20%; }
+.bubble:nth-child(2) { bottom: -10%; left: 40%; }
+.bubble:nth-child(3) { top: -10%;   right: 20%; }
+.bubble:nth-child(4) { bottom: -10%; right: 40%; }
+
+/* 11. Bubble animation */
+@keyframes bubbleAnim {
+  0%, 100% {
+    transform: scale(1);
+    opacity: var(--bubble-opacity);
+  }
+  50% {
+    transform: scale(var(--bubble-scale-max));
+    opacity: calc(var(--bubble-opacity) / 2);
+  }
+}
+
+/* 12. Responsive tweaks */
+@media (max-width: 768px) {
+  :root {
+    --button-padding:       0.8rem 1.5rem;
+    --button-font-size:     1rem;
+    --bubble-size:          16px;
+    --bubble-duration:      1.8s;
+  }
+  /* Hide lower-right bubbles to reduce clutter */
+  .bubble:nth-child(3),
+  .bubble:nth-child(4) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --button-padding:       0.6rem 1rem;
+    --button-font-size:     0.9rem;
+    --bubble-size:          12px;
+    --bubble-duration:      1.5s;
+  }
+  /* Further reduce bubbles */
+  .bubble:nth-child(2) {
+    display: none;
+  }
+}

@@ -1,0 +1,19 @@
+.auth-section {
+  max-width: 400px;
+  margin: 4rem auto;
+  background: rgba(255,255,255,0.05);
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+}
+.auth-form input {
+  width: 100%; margin: 0.5rem 0; padding: 0.75rem; border-radius: 6px;
+  border: 1px solid #2c2f4a; background: #15182e; color: #e0e0e0;
+}
+.auth-form button {
+  width: 100%; padding: 0.75rem; margin-top: 1rem;
+  background: #00e5ff; color: #000; border:none; border-radius:6px;
+  cursor: pointer; font-weight: bold;
+}
+.auth-form button:hover { background: #00bcd4; }
+
