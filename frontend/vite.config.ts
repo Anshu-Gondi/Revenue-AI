@@ -6,4 +6,8 @@ export default defineConfig({
     environment: 'jsdom', // 👈 fixes the "document is not defined" error
     globals: true,
   },
+  base: '/',
+  build: {
+    outDir: 'dist',
+  },
 });
