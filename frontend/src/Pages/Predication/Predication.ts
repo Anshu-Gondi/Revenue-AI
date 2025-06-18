@@ -5,6 +5,7 @@ import { renderLoader } from '../../Components/Loader/Loader';
 
 let lastEDAResult: any = null;
 let lastModelResult: any = null;
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function renderPredictionPage() {
   const html = `
@@ -75,7 +76,7 @@ async function handleEDA() {
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
 
-  const res = await AuthService.fetchWithAuth("http://127.0.0.1:8000/api/predict/eda/", {
+  const res = await AuthService.fetchWithAuth(`${API_URL}/api/predict/eda/`, {
     method: "POST",
     body: formData
   });
@@ -104,7 +105,7 @@ async function handleTrain() {
   formData.append("file", fileInput.files[0]);
   formData.append("model", modelSelect.value);
 
-  const res = await AuthService.fetchWithAuth("http://127.0.0.1:8000/api/predict/train/", {
+  const res = await AuthService.fetchWithAuth(`${API_URL}/api/predict/train/`, {
     method: "POST",
     body: formData
   });
@@ -143,7 +144,7 @@ async function handleSaveResult() {
     notes: (document.getElementById('noteInput') as HTMLInputElement).value.trim()
   };
 
-  const res = await AuthService.fetchWithAuth("http://127.0.0.1:8000/api/save-result/", {
+  const res = await AuthService.fetchWithAuth(`${API_URL}/api/save-result/`, {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -163,7 +164,7 @@ async function loadSavedResults() {
   const container = document.getElementById("savedResultsContainer")!;
   const filterText = (document.getElementById("filterInput") as HTMLInputElement).value.toLowerCase();
 
-  const response = await AuthService.fetchWithAuth("http://127.0.0.1:8000/api/saved-results/?page=1&page_size=100");
+  const response = await AuthService.fetchWithAuth(`${API_URL}/api/saved-results/?page=1&page_size=100`);
   if (!response || typeof response.json !== 'function') {
     container.innerHTML = `<p style="color:red;">Failed to fetch results</p>`;
     return;
@@ -185,7 +186,7 @@ async function loadSavedResults() {
 
 async function editResult(id: number) {
   const notes = (document.getElementById(`editNote-${id}`) as HTMLTextAreaElement).value.trim();
-  await AuthService.fetchWithAuth(`http://127.0.0.1:8000/api/saved-results/edit/${id}/`, {
+  await AuthService.fetchWithAuth(`${API_URL}/api/saved-results/edit/${id}/`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes })
@@ -196,7 +197,7 @@ async function editResult(id: number) {
 
 async function deleteResult(id: number) {
   if (!confirm('Are you sure you want to delete this result?')) return;
-  await AuthService.fetchWithAuth(`http://127.0.0.1:8000/api/saved-results/delete/${id}/`, {
+  await AuthService.fetchWithAuth(`${API_URL}/api/saved-results/delete/${id}/`, {
     method: 'DELETE'
   });
   alert('Result deleted.');
@@ -205,7 +206,7 @@ async function deleteResult(id: number) {
 
 async function downloadResult(id: number) {
   const response = await AuthService.fetchWithAuth(
-    `http://127.0.0.1:8000/api/saved-results/download/${id}/`
+    `${API_URL}/api/saved-results/download/${id}/`
   );
   const data = await response.json();
   // Offer the JSON blob for download:

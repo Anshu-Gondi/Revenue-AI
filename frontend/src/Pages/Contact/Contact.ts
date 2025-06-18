@@ -1,6 +1,8 @@
 import './Contact.css';
 import { showToast } from '../../Components/Toast/Toast';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 export function renderContactPage() {
   setTimeout(() => {
     const form = document.getElementById('contactForm') as HTMLFormElement | null;
@@ -16,7 +18,7 @@ export function renderContactPage() {
       };
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/contact/', {
+        const response = await fetch(`${API_URL}/api/contact/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),

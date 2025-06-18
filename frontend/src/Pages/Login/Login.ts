@@ -12,8 +12,7 @@ declare const google: any;
 
 // Pull in your Vite env var
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-console.log('GOOGLE_CLIENT_ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function renderLoginPage() {
   const html = `
@@ -89,7 +88,7 @@ export function renderLoginPage() {
 async function handleGoogleCredential(response: { credential: string }) {
   const id_token = response.credential;
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/auth/google-login/', {
+    const res = await fetch(`${API_URL}/api/auth/google-login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: id_token })

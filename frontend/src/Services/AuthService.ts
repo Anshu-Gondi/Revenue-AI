@@ -3,13 +3,13 @@ export interface Tokens {
   refresh: string;
 }
 
-const API = 'http://127.0.0.1:8000/api';
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export class AuthService {
   /** Log in using Google OAuth */
   static async googleLogin(id_token: string): Promise<Tokens | { detail: string }> {
     try {
-      const res = await fetch(`${API}/auth/social/google/`, {
+      const res = await fetch(`${API_URL}/api/auth/social/google/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: id_token }),
@@ -31,7 +31,7 @@ export class AuthService {
   /** Sign up a new user */
   static async signup(username: string, email: string, password: string) {
     try {
-      const resp = await fetch(`${API}/auth/signup/`, {
+      const resp = await fetch(`${API_URL}/api/auth/signup/`, {
         method: 'POST',
         headers: AuthService.jsonHeaders(),
         body: JSON.stringify({ username, email, password }),
@@ -49,7 +49,7 @@ export class AuthService {
   /** Log in an existing user */
   static async login(username: string, password: string) {
     try {
-      const resp = await fetch(`${API}/auth/login/`, {
+      const resp = await fetch(`${API_URL}/api/auth/login/`, {
         method: 'POST',
         headers: AuthService.jsonHeaders(),
         body: JSON.stringify({ username, password }),
@@ -111,7 +111,7 @@ export class AuthService {
     if (resp.status === 401) {
       const refresh = localStorage.getItem('refresh');
       if (refresh) {
-        const refreshResp = await fetch(`${API}/auth/token/refresh/`, {
+        const refreshResp = await fetch(`${API_URL}/api/auth/token/refresh/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),
