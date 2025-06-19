@@ -7,6 +7,10 @@ export function renderLoader(): string {
         <div class="loader-item"></div>
         <div class="loader-item"></div>
         <div class="loader-item"></div>
+        <div class="loader-core"></div>
+        <div class="loader-particles">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
     </div>
   </div>
   `;

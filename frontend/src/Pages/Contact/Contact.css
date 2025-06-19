@@ -1,62 +1,74 @@
-/* Contact.css — Enhanced */
-
-/* 1. Theme Variables */
 :root {
   --bg-grad-start:    #1a1a2e;
   --bg-grad-mid:      #16213e;
   --bg-grad-end:      #0f3460;
   --accent-light:     #00e5ff;
   --accent-dark:      #00bcd4;
-  --text-main:        #fff;
-  --text-muted:       #ccc;
-  --input-bg:         #101d42;
-  --input-bg-focus:   #1f2e66;
-  --border-light:     rgba(255,255,255,0.05);
-  --radius-lg:        16px;
-  --radius-md:        10px;
+  --text-main:        #ffffff;
+  --text-muted:       #c5cfdc;
+  --input-bg:         #0f1c3a;
+  --input-bg-focus:   #162a56;
+  --border-light:     rgba(255,255,255,0.07);
+  --radius-lg:        18px;
+  --radius-md:        12px;
   --spacing-lg:       3rem;
   --spacing-md:       2rem;
   --spacing-sm:       1rem;
   --transition:       0.3s ease-in-out;
-  --shadow-heavy:     rgba(0,0,0,0.4);
-  --shadow-inset:     rgba(255,255,255,0.05);
+  --shadow-heavy:     rgba(0,0,0,0.5);
+  --glow:             rgba(0, 229, 255, 0.5);
 }
 
-/* 2. Base Reset */
+/* Reset */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-/* 3. Section Container */
+/* Section */
 .contact-section {
-  max-width: 900px;
+  max-width: 960px;
   margin: var(--spacing-lg) auto;
   padding: var(--spacing-lg) var(--spacing-md);
   background: linear-gradient(135deg, var(--bg-grad-start), var(--bg-grad-mid), var(--bg-grad-end));
   color: var(--text-main);
   text-align: center;
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 32px var(--shadow-heavy);
-  backdrop-filter: blur(6px);
+  box-shadow: 0 12px 36px var(--shadow-heavy);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--border-light);
   transition: transform var(--transition), box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.6s ease-in-out both;
+}
+
+.contact-section::before {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  top: -60px;
+  right: -60px;
+  z-index: 0;
+  opacity: 0.3;
 }
 
 .contact-section:hover {
   transform: scale(1.02);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 18px 48px rgba(0, 229, 255, 0.2);
 }
 
-/* 4. Titles & Text */
+/* Title & Text */
 .contact-title {
-  font-size: 2.8rem;
+  font-size: 2.75rem;
   color: var(--accent-light);
   letter-spacing: 1px;
   margin-bottom: var(--spacing-sm);
   text-transform: uppercase;
-  animation: fadeIn var(--transition) both;
+  text-shadow: 0 0 12px var(--glow);
 }
 
 .contact-text {
@@ -64,65 +76,68 @@
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: var(--spacing-md);
-  animation: fadeIn var(--transition) both;
-  animation-delay: 0.2s;
+  animation: fadeIn 0.8s ease-in-out both;
+  animation-delay: 0.15s;
 }
 
-/* 5. Form Layout */
+/* Form */
 .contact-form {
   display: grid;
   grid-template-columns: 1fr;
   row-gap: var(--spacing-sm);
   max-width: 600px;
   margin: 0 auto;
+  z-index: 1;
+  position: relative;
 }
 
 .contact-form input,
 .contact-form textarea {
   width: 100%;
-  padding: var(--spacing-sm);
+  padding: 1rem;
   background-color: var(--input-bg);
   color: var(--text-main);
-  border: none;
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: inset 0 0 5px var(--shadow-inset);
-  font-size: 1rem;
-  transition: background var(--transition), box-shadow var(--transition);
+  font-size: 1.05rem;
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.04);
+  transition: background var(--transition), box-shadow var(--transition), border var(--transition);
 }
 
 .contact-form input:focus,
 .contact-form textarea:focus {
   background-color: var(--input-bg-focus);
-  outline: 2px solid var(--accent-light);
-  box-shadow: inset 0 0 8px var(--shadow-inset);
+  outline: none;
+  border: 1px solid var(--accent-light);
+  box-shadow: 0 0 10px var(--glow);
 }
 
-/* 6. Button */
+/* Button */
 .contact-button {
-  padding: 0.85rem 1.5rem;
+  padding: 0.95rem 2rem;
   background: linear-gradient(to right, var(--accent-light), var(--accent-dark));
   color: #000;
   border: none;
   border-radius: 30px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-size: 1.15rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-  justify-self: center;
+  box-shadow: 0 0 15px rgba(0,229,255,0.2);
 }
 
 .contact-button:hover {
   background: linear-gradient(to right, var(--accent-dark), var(--accent-light));
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0,229,255,0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0,229,255,0.35);
 }
 
 .contact-button:active {
   transform: scale(0.95);
-  box-shadow: 0 4px 10px rgba(0,229,255,0.6);
+  box-shadow: 0 4px 12px rgba(0,229,255,0.6);
 }
 
-/* 7. Email Hint */
+/* Email Hint */
 .email-hint {
   margin-top: var(--spacing-md);
   color: var(--text-muted);
@@ -133,14 +148,15 @@
   color: var(--accent-light);
   text-decoration: underline;
   font-weight: 500;
-  transition: color var(--transition);
+  transition: color var(--transition), text-shadow var(--transition);
 }
 
 .email-hint a:hover {
   color: var(--accent-dark);
+  text-shadow: 0 0 6px var(--glow);
 }
 
-/* 8. FadeIn Animation */
+/* Animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -152,23 +168,48 @@
   }
 }
 
-/* 9. Responsive */
+/* Responsive */
 @media (max-width: 768px) {
   .contact-section {
-    padding: var(--spacing-md) var(--spacing-sm);
+    padding: var(--spacing-md);
     margin: var(--spacing-md) var(--spacing-sm);
     border-radius: var(--radius-md);
   }
-  .contact-title { font-size: 2.2rem; }
-  .contact-text { font-size: 1rem; }
+
+  .contact-title {
+    font-size: 2.2rem;
+  }
+
+  .contact-text {
+    font-size: 1.05rem;
+  }
+
   .contact-form input,
-  .contact-form textarea { font-size: 0.95rem; padding: 0.7rem; }
-  .contact-button { font-size: 1rem; padding: 0.7rem 1.2rem; }
+  .contact-form textarea {
+    font-size: 0.95rem;
+    padding: 0.8rem;
+  }
+
+  .contact-button {
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .contact-section { margin: var(--spacing-md) var(--spacing-sm); }
-  .contact-title { font-size: 1.8rem; }
-  .email-hint { font-size: 0.9rem; }
-  .contact-button { width: 100%; }
+  .contact-title {
+    font-size: 1.8rem;
+  }
+
+  .contact-text {
+    font-size: 1rem;
+  }
+
+  .email-hint {
+    font-size: 0.9rem;
+  }
+
+  .contact-button {
+    width: 100%;
+  }
 }

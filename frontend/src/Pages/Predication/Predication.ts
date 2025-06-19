@@ -261,6 +261,24 @@ function renderEDAOutput(data: any) {
 }
 
 function renderTrainOutput(data: any) {
+  const diagnosticGraphs = data.diagnostic_graphs || {};
+  const graphTitles: Record<string, string> = {
+    residuals_plot: 'Residuals vs Predicted',
+    pred_vs_actual: 'Predicted vs Actual',
+    feature_importance: 'Feature Importances',
+    learning_curve: 'Learning Curve',
+    error_histogram: 'Error Distribution',
+    shap_summary: 'SHAP Summary'
+  };
+
+  const graphHtml = Object.entries(diagnosticGraphs).map(([key, b64]) => {
+    const title = graphTitles[key] || key;
+    return `
+      <h4>${title}</h4>
+      <img src="data:image/png;base64,${b64}" alt="${title}" style="max-width:100%; margin-top:1rem;" />
+    `;
+  }).join('');
+
   return `
     <h3>Model Report</h3>
     <p><strong>Model Name:</strong> ${data.model_name}</p>
@@ -275,6 +293,7 @@ function renderTrainOutput(data: any) {
            <img src="data:image/png;base64,${data.forecast_plot_base64}" style="max-width:100%; margin-top:1rem;" />`
         : ''
     }
+    ${graphHtml}
   `;
 }
 

@@ -1,26 +1,20 @@
-/* Gooey Button — Enhanced */
+/* Gooey Button — AI Enhanced */
 
-/* 1. Scoped box-sizing */
-.gooey-button-container,
-.gooey-button-container * {
-  box-sizing: border-box;
-}
-
-/* 2. Theme Variables */
 :root {
   --goo-color:               #00f6ff;
-  --button-text-color:       #fff;
-  --button-radius:           50px;
+  --goo-glow:                0 0 12px rgba(0, 246, 255, 0.6), 0 0 20px rgba(0, 246, 255, 0.3);
+  --button-text-color:       #0d1f2d;
+  --button-radius:           48px;
   --button-padding:          1rem 2rem;
   --button-font-size:        1.2rem;
   --bubble-size:             20px;
-  --bubble-duration:         2s;
+  --bubble-duration:         2.2s;
   --bubble-opacity:          0.6;
   --bubble-scale-max:        1.8;
-  --transition-duration:     0.2s;
+  --transition-duration:     0.25s;
 }
 
-/* 3. Hidden filter definition */
+/* 1. Hide SVG filter setup */
 .goo-filter {
   position: absolute;
   width: 0;
@@ -28,47 +22,47 @@
   overflow: hidden;
 }
 
-/* 4. Container applying goo filter */
+/* 2. Container that applies the goo effect */
 .gooey-button-container {
   filter: url('#goo');
-  display: inline-block;
   position: relative;
-  margin: 1rem;
+  display: inline-block;
+  margin: 1.5rem;
 }
 
-/* 5. Button base styles */
+/* 3. Main button style */
 .gooey-button {
+  position: relative;
   display: inline-block;
   padding: var(--button-padding);
   font-size: var(--button-font-size);
-  color: var(--button-text-color);
-  background: var(--goo-color);
+  font-weight: 600;
   border: none;
   border-radius: var(--button-radius);
+  color: var(--button-text-color);
+  background: linear-gradient(145deg, #00e5ff, #00bcd4);
+  box-shadow: var(--goo-glow);
   cursor: pointer;
-  position: relative;
   z-index: 2;
-  transition:
-    transform var(--transition-duration) ease,
-    box-shadow var(--transition-duration) ease;
+  transition: transform var(--transition-duration), box-shadow var(--transition-duration), filter 0.3s ease-in-out;
 }
 
-/* 6. Hover / focus */
+/* 4. Hover Effects */
 .gooey-button:hover,
 .gooey-button:focus {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0, 246, 255, 0.6);
-  outline: 2px solid rgba(0, 246, 255, 0.8);
-  outline-offset: 4px;
+  transform: scale(1.06);
+  box-shadow: 0 0 18px rgba(0, 246, 255, 0.8), 0 0 30px rgba(0, 246, 255, 0.5);
+  filter: brightness(1.1);
+  outline: none;
 }
 
-/* 7. Active (press) */
+/* 5. Active (click) */
 .gooey-button:active {
   transform: scale(0.95);
-  box-shadow: 0 2px 8px rgba(0, 246, 255, 0.8);
+  box-shadow: 0 0 10px rgba(0, 246, 255, 0.7);
 }
 
-/* 8. Bubble container */
+/* 6. Bubbles container */
 .bubbles {
   position: absolute;
   inset: 0;
@@ -76,7 +70,7 @@
   z-index: 1;
 }
 
-/* 9. Bubble base styles */
+/* 7. Bubble style */
 .bubble {
   position: absolute;
   width: var(--bubble-size);
@@ -86,15 +80,16 @@
   opacity: var(--bubble-opacity);
   animation: bubbleAnim var(--bubble-duration) infinite ease-in-out;
   transform-origin: center;
+  filter: blur(1px);
 }
 
-/* 10. Bubble positions */
-.bubble:nth-child(1) { top: -10%;   left: 20%; }
-.bubble:nth-child(2) { bottom: -10%; left: 40%; }
-.bubble:nth-child(3) { top: -10%;   right: 20%; }
-.bubble:nth-child(4) { bottom: -10%; right: 40%; }
+/* 8. Bubble placement */
+.bubble:nth-child(1) { top: -12%;  left: 22%; }
+.bubble:nth-child(2) { bottom: -12%; left: 35%; }
+.bubble:nth-child(3) { top: -12%;  right: 18%; }
+.bubble:nth-child(4) { bottom: -12%; right: 32%; }
 
-/* 11. Bubble animation */
+/* 9. Bubble animation */
 @keyframes bubbleAnim {
   0%, 100% {
     transform: scale(1);
@@ -106,7 +101,7 @@
   }
 }
 
-/* 12. Responsive tweaks */
+/* 10. Responsive Tweaks */
 @media (max-width: 768px) {
   :root {
     --button-padding:       0.8rem 1.5rem;
@@ -114,7 +109,7 @@
     --bubble-size:          16px;
     --bubble-duration:      1.8s;
   }
-  /* Hide lower-right bubbles to reduce clutter */
+
   .bubble:nth-child(3),
   .bubble:nth-child(4) {
     display: none;
@@ -123,12 +118,12 @@
 
 @media (max-width: 480px) {
   :root {
-    --button-padding:       0.6rem 1rem;
+    --button-padding:       0.6rem 1.2rem;
     --button-font-size:     0.9rem;
     --bubble-size:          12px;
-    --bubble-duration:      1.5s;
+    --bubble-duration:      1.4s;
   }
-  /* Further reduce bubbles */
+
   .bubble:nth-child(2) {
     display: none;
   }

@@ -52,7 +52,7 @@ function disableScrollTemporarily(duration = 600) {
 
 function renderHome() {
   renderWithFlip('home', `
-    <h1 class="hero-title">Welcome to the Sales Predictor</h1>
+    <h1 class="hero-title">Welcome to the Revenue.ai</h1>
     <p class="hero-subtitle">Predict your business future with confidence.</p>
     <div class="button-container">${renderGooeyButton()}</div>
   `);

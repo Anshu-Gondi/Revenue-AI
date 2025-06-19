@@ -15,7 +15,7 @@ export function renderNavbar(): string {
   return `
   <div class="navbar-wrapper">
     <nav class="navbar">
-      <div class="navbar-logo">Sales Predictor</div>
+      <div class="navbar-logo">Revenue.ai</div>
       <ul class="navbar-links">
         <li><a href="#" id="home-link">Home</a></li>
         <li><a href="#" id="predict-link">Predict</a></li>

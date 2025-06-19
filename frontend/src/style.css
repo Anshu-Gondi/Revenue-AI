@@ -1,21 +1,25 @@
-/* 1. Theme Variables */
+/* 1. AI Theme Variables */
 :root {
-  --bg-gradient:       linear-gradient(to right, #0f2027, #203a43, #2c5364);
-  --card-bg:           rgba(255,255,255,0.05);
-  --accent-shadow:     rgba(0,229,255,0.1);
-  --radius-lg:         12px;
-  --padding-lg:        4rem 2rem;
-  --max-width:         960px;
+  --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  --card-bg: rgba(255, 255, 255, 0.08);
+  --card-glass: rgba(255, 255, 255, 0.06);
+  --accent-shadow: rgba(0, 255, 242, 0.15);
+  --glow: 0 0 10px rgba(0, 255, 255, 0.4), 0 0 20px rgba(0, 255, 255, 0.2);
+  --radius-lg: 14px;
+  --padding-lg: 4rem 2rem;
+  --max-width: 1000px;
 
-  --font-base:         "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  --color-text:        #fff;
+  --font-base: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --color-text: #e0f7fa;
+  --color-subtle: #b2ebf2;
 
-  --anim-duration:     0.6s;
-  --anim-ease:         ease-in-out;
-  --fade-delay-base:   0.3s;
-  --flip-perspective:  1000px;
+  --anim-duration: 0.6s;
+  --anim-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --fade-delay-base: 0.3s;
+  --flip-perspective: 1200px;
 }
 
+/* 2. Global Styling */
 body {
   margin: 0;
   font-family: var(--font-base);
@@ -23,6 +27,15 @@ body {
   color: var(--color-text);
   min-height: 100vh;
   overflow-x: hidden;
+  background-attachment: fixed;
+  background-size: 200% 200%;
+  animation: bgShift 20s ease infinite;
+}
+
+@keyframes bgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* 3. Page container */
@@ -35,31 +48,39 @@ body {
   overflow: hidden;
 }
 
-/* 4. Main content card */
+/* 4. Glassy main content card */
 .main-content {
-  background: var(--card-bg);
+  background: var(--card-glass);
+  backdrop-filter: blur(18px);
   border-radius: var(--radius-lg);
-  box-shadow: 0 0 20px var(--accent-shadow);
+  box-shadow: var(--glow);
   padding: var(--padding-lg);
   width: 90%;
   max-width: var(--max-width);
   margin: 2rem auto 0;
   text-align: center;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
   animation: fadeInUp var(--anim-duration) var(--anim-ease) both;
+  border: 1px solid rgba(0, 255, 255, 0.1);
+  transition: transform 0.4s ease;
 }
 
-/* 5. Hero typography */
+.main-content:hover {
+  transform: scale(1.01);
+}
+
+/* 5. Typography */
 .hero-title {
-  font-size: 2.5rem;
+  font-size: 2.75rem;
   margin-bottom: 1rem;
+  color: #ffffff;
   animation: fadeIn var(--anim-duration) var(--anim-ease) both;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   margin-bottom: 2rem;
+  color: var(--color-subtle);
   animation: fadeIn var(--anim-duration) var(--anim-ease) both;
   animation-delay: calc(var(--fade-delay-base) * 1.2);
 }
@@ -68,11 +89,30 @@ body {
 .button-container {
   display: flex;
   justify-content: center;
+  gap: 1rem;
   animation: fadeInUp var(--anim-duration) var(--anim-ease) both;
   animation-delay: calc(var(--fade-delay-base) * 1.5);
 }
 
-/* 7. Flip animations */
+button {
+  background: linear-gradient(135deg, #00e5ff, #00bcd4);
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: #00f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+/* 7. Flip Animations */
 .page-flip-left  { animation: flip var(--anim-duration) var(--anim-ease) both reverse; }
 .page-flip-right { animation: flip var(--anim-duration) var(--anim-ease) both; }
 
@@ -86,11 +126,10 @@ body {
     opacity: 1;
   }
 }
-/* Setup for left vs right */
-.page-flip-left  { --flip-angle:  90deg; }
+.page-flip-left  { --flip-angle: 90deg; }
 .page-flip-right { --flip-angle: -90deg; }
 
-/* 8. Fade‑in and fade‑up */
+/* 8. Fade Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -107,7 +146,7 @@ body {
   }
 }
 
-/* 9. Responsive adjustments */
+/* 9. Responsive Design */
 @media (max-width: 768px) {
   .hero-title { font-size: 2rem; }
   .hero-subtitle { font-size: 1.1rem; }

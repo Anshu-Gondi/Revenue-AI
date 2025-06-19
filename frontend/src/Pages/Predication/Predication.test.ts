@@ -132,7 +132,12 @@ describe('Prediction Page - Updated Tests', () => {
         sample_predictions: [10, 12, 14],
         forecast_plot_base64: 'fake_img_string',
         diagnostic_graphs: {
-          'SHAP Summary': 'fake_base64_shap',
+          residuals_plot: 'fake_base64_residuals',
+          pred_vs_actual: 'fake_base64_pred_actual',
+          feature_importance: 'fake_base64_importance',
+          learning_curve: 'fake_base64_curve',
+          error_histogram: 'fake_base64_hist',
+          shap_summary: 'fake_base64_shap',
         },
       }),
     });
@@ -142,6 +147,11 @@ describe('Prediction Page - Updated Tests', () => {
       const out = document.getElementById('trainOutput')!;
       expect(out.innerHTML).toContain('random_forest');
       expect(out.innerHTML).toContain('target');
+      expect(out.innerHTML).toContain('Residuals vs Predicted');
+      expect(out.innerHTML).toContain('Predicted vs Actual');
+      expect(out.innerHTML).toContain('Feature Importances');
+      expect(out.innerHTML).toContain('Learning Curve');
+      expect(out.innerHTML).toContain('SHAP Summary');
     });
   });
 
