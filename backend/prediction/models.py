@@ -21,7 +21,22 @@ from torch.utils.data import TensorDataset, DataLoader
 
 
 def train_model_pipeline(df, model_name='random_forest'):
-    from .views import inter_target_column  # if still in views
+    from .views import inter_target_column
+
+    import matplotlib.pyplot as plt
+    from sklearn.model_selection import learning_curve
+    import io, base64
+    import shap
+
+    def fig_to_base64(fig):
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        img = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+        return img
+
+    graphs = {}
 
     df = df.copy()
     target_col = inter_target_column(df)
@@ -81,12 +96,9 @@ def train_model_pipeline(df, model_name='random_forest'):
                 return self.net(x)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        X_train_tensor = torch.tensor(
-            X_train.values, dtype=torch.float32).to(device)
-        y_train_tensor = torch.tensor(
-            y_train.values, dtype=torch.float32).view(-1, 1).to(device)
-        X_test_tensor = torch.tensor(
-            X_test.values, dtype=torch.float32).to(device)
+        X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
+        y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).view(-1, 1).to(device)
+        X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32).to(device)
 
         dataset = TensorDataset(X_train_tensor, y_train_tensor)
         loader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -108,52 +120,106 @@ def train_model_pipeline(df, model_name='random_forest'):
         with torch.no_grad():
             y_pred_tensor = model(X_test_tensor)
             y_pred = y_pred_tensor.cpu().numpy().flatten()
-
     else:
         model = RandomForestRegressor(random_state=42)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
+    # ─── Evaluation ──────────────────────────────
     rmse = mean_squared_error(y_test, y_pred) ** 0.5
     r2   = r2_score(y_test,  y_pred)
-    # if R² came back undefined (NaN), coerce it to 0.0
     if np.isnan(r2):
         r2 = 0.0
 
+    # ─── Residuals Plot ─────────────────────────
+    residuals = y_test - y_pred
+    fig, ax = plt.subplots()
+    ax.scatter(y_pred, residuals, alpha=0.6)
+    ax.axhline(0, color='red')
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Residuals")
+    ax.set_title("Residuals vs Predicted")
+    graphs['residuals_plot'] = fig_to_base64(fig)
+
+    # ─── Predicted vs Actual ────────────────────
+    fig, ax = plt.subplots()
+    ax.scatter(y_test, y_pred, alpha=0.6)
+    ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.set_title("Predicted vs Actual")
+    graphs['pred_vs_actual'] = fig_to_base64(fig)
+
+    # ─── Feature Importance ─────────────────────
+    if hasattr(model, 'feature_importances_'):
+        importances = model.feature_importances_
+        idx = np.argsort(importances)[::-1]
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.barh([X.columns[i] for i in idx], importances[idx])
+        ax.set_title("Feature Importances")
+        ax.invert_yaxis()
+        graphs['feature_importance'] = fig_to_base64(fig)
+
+    # ─── Learning Curve ─────────────────────────
+    try:
+        train_sizes, train_scores, val_scores = learning_curve(
+            model, X, y, cv=5, scoring='neg_root_mean_squared_error',
+            train_sizes=np.linspace(0.1, 1.0, 5)
+        )
+        train_scores = -train_scores
+        val_scores   = -val_scores
+        fig, ax = plt.subplots()
+        ax.plot(train_sizes, train_scores.mean(axis=1), 'o-', label='Train RMSE')
+        ax.plot(train_sizes, val_scores.mean(axis=1), 'o-', label='Validation RMSE')
+        ax.set_xlabel('Training Size')
+        ax.set_ylabel('RMSE')
+        ax.set_title("Learning Curve")
+        ax.legend()
+        graphs['learning_curve'] = fig_to_base64(fig)
+    except:
+        pass  # fallback for PyTorch or non-sklearn models
+
+    # ─── Error Distribution Histogram ───────────
+    fig, ax = plt.subplots()
+    ax.hist(residuals, bins=20, edgecolor='black')
+    ax.set_title("Error Distribution (Residuals)")
+    ax.set_xlabel("Residual")
+    graphs['error_histogram'] = fig_to_base64(fig)
+
+    # ─── SHAP Summary (optional) ────────────────
+    try:
+        explainer = shap.Explainer(model, X)
+        shap_values = explainer(X_test)
+        fig = shap.plots.beeswarm(shap_values, show=False)
+        graphs['shap_summary'] = fig_to_base64(fig)
+    except:
+        pass  # skip SHAP if model not supported
+
+    # ─── Forecast (Optional) ────────────────────
     forecast_plot = None
     if 'month' in X.columns:
         rows = []
         for i in range(1, 6):
             row = {}
             for col in X.columns:
-                if col == 'month':
-                    row[col] = i
-                else:
-                    row[col] = X_train[col].median()
+                row[col] = i if col == 'month' else X_train[col].median()
             rows.append(row)
         future_months = pd.DataFrame(rows)[X.columns]
-        
+
         if model_name == 'pytorch_nn':
             model.eval()
             with torch.no_grad():
-                future_tensor = torch.tensor(
-                    future_months.values, dtype=torch.float32
-                    ).to(device)
+                future_tensor = torch.tensor(future_months.values, dtype=torch.float32).to(device)
                 future_preds = model(future_tensor).cpu().numpy().flatten()
         else:
             future_preds = model.predict(future_months)
 
-
-        plt.figure()
-        plt.plot(range(1, 6), future_preds, marker='o')
-        plt.title("Future Forecast (Next 5 Months)")
-        plt.xlabel("Month")
-        plt.ylabel(target_col)
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        forecast_plot = base64.b64encode(buffer.read()).decode('utf-8')
-        plt.close()
+        fig, ax = plt.subplots()
+        ax.plot(range(1, 6), future_preds, marker='o')
+        ax.set_title("Future Forecast (Next 5 Months)")
+        ax.set_xlabel("Month")
+        ax.set_ylabel(target_col)
+        forecast_plot = fig_to_base64(fig)
 
     return {
         'target_column': target_col,
@@ -161,5 +227,6 @@ def train_model_pipeline(df, model_name='random_forest'):
         'rmse': round(rmse, 2),
         'r2_score': round(r2, 3),
         'sample_predictions': y_pred[:5].tolist(),
-        'forecast_plot_base64': forecast_plot
+        'forecast_plot_base64': forecast_plot,
+        'diagnostic_graphs': graphs
     }

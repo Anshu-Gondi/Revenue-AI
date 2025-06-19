@@ -154,6 +154,11 @@ class TrainModelAPIViewTest(APITestCase):
             msg="'forecast_plot_base64' must be str or None"
         )
 
+        if 'diagnostic_graphs' in resp.data:
+            self.assertIsInstance(resp.data['diagnostic_graphs'], dict)
+            # Optionally check specific graphs like:
+            self.assertIn('residuals_plot', resp.data['diagnostic_graphs'])
+
 class AuthViewsTest(APITestCase):
     def setUp(self):
         self.signup_url       = reverse('signup')       # /api/auth/signup/
