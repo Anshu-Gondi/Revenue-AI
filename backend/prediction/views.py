@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, permissions
-import pandas as pd
+import polars as pl
 from .utils import process_and_predict
 from .eda import generate_graphs
 import re
@@ -17,6 +17,7 @@ from database.models import SavedResult
 from .serializers import SignUpSerializer, UserSerializer
 from google.oauth2 import id_token
 from google.auth.transport import requests
+import datetime
 
 class PredictAPIView(APIView):
     parser_classes = [MultiPartParser]
@@ -27,17 +28,14 @@ class PredictAPIView(APIView):
             return Response({'error': 'No file uploaded'}, status=400)
 
         try:
-            df = pd.read_csv(file)
+            df = pl.read_csv(file)
             results = process_and_predict(df)
             return Response(results)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
-# Sanitize JSON-incompatible float values
-# views.py (excerpt)
-import pandas as pd
-import numpy as np
-import datetime
+
+# ─── SANITIZE ───────────────────────────────────────────────
 
 def sanitize_for_json(data):
     if isinstance(data, dict):
@@ -46,48 +44,39 @@ def sanitize_for_json(data):
     elif isinstance(data, list):
         return [sanitize_for_json(i) for i in data]
 
-    # Convert pure Python datetime/date to ISO string
     elif isinstance(data, (datetime.date, datetime.datetime)):
         return data.isoformat()
 
-    # Convert pandas.Timestamp (which subclasses datetime) as well
-    elif isinstance(data, pd.Timestamp):
-        return data.isoformat()
-
-    # Convert NumPy scalar types into native Python types
     elif isinstance(data, (np.integer, np.int64, np.int32, np.int16, np.int8)):
         return int(data)
+
     elif isinstance(data, (np.floating, np.float64, np.float32)):
-        # If it’s NaN or Inf, return None, else native float
         if np.isnan(data) or np.isinf(data):
             return None
         return float(data)
 
-    # Tuples (e.g., df.shape) → turn into list
     elif isinstance(data, tuple):
         return [sanitize_for_json(i) for i in data]
 
-    # For any other float (pure Python), handle NaN/Inf:
     elif isinstance(data, float):
         if np.isnan(data) or np.isinf(data):
             return None
         return data
 
-    # For any other primitive (str, int, bool, etc.), just return
     return data
 
 
-def inter_target_column(df):
-    """Try to detect the most likely target column eg.,revenue,etc"""
-    target_keywords = ["revenue", "target",
-                       "sales", "income", "profit", "earning"]
+def inter_target_column(df: pl.DataFrame):
+    """Try to detect the most likely target column eg., revenue, sales, profit."""
+    target_keywords = ["revenue", "target", "sales", "income", "profit", "earning"]
     for col in df.columns:
         for keyword in target_keywords:
             if re.search(keyword, col.lower()):
                 return col
-    return None  # fallback if nothing matches
+    return None
 
-# ─── EDA ────────────────────────────────────────────────────────────────────────
+
+# ─── EDA ────────────────────────────────────────────────────
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
@@ -97,18 +86,22 @@ def eda_view(request):
     if not file:
         return Response({"error": "No file uploaded."}, status=400)
 
-    df = pd.read_csv(file)
+    df = pl.read_csv(file)
 
     # 1) date → month
     date_column = None
     for col in df.columns:
         if 'date' in col.lower():
             try:
-                df[col] = pd.to_datetime(df[col])
-                df['month'] = df[col].dt.month
+                df = df.with_columns([
+                    pl.col(col).str.strptime(pl.Datetime, strict=False).alias(col)
+                ])
+                df = df.with_columns([
+                    df[col].dt.month().alias("month")
+                ])
                 date_column = col
                 break
-            except:
+            except Exception:
                 continue
 
     # 2) infer target & product columns
@@ -116,20 +109,23 @@ def eda_view(request):
     product_name_col = next((c for c in df.columns if 'product' in c.lower() and 'name' in c.lower()), None)
     product_type_col = next((c for c in df.columns if 'product' in c.lower() and ('type' in c.lower() or 'category' in c.lower())), None)
 
+    # Convert Polars → Pandas for some EDA ops (describe, corr, etc.)
+    df_pd = df.to_pandas()
+
     # 3) build payload
     eda_payload = {
         'shape': df.shape,
-        'columns': list(df.columns),
-        'dtypes': df.dtypes.astype(str).to_dict(),
-        'missing_values': df.isnull().sum().to_dict(),
-        'descriptive_stats': df.describe(include='all').fillna('').to_dict(),
-        'correlation_matrix': df.corr(numeric_only=True).round(2).to_dict(),
-        'unique_values': df.nunique().to_dict(),
-        'example_rows': df.head(5).to_dict(orient='records'),
+        'columns': df.columns,
+        'dtypes': {c: str(df[c].dtype) for c in df.columns},
+        'missing_values': df.null_count().to_dict(as_series=False),
+        'descriptive_stats': df_pd.describe(include='all').fillna('').to_dict(),
+        'correlation_matrix': df_pd.corr(numeric_only=True).round(2).to_dict(),
+        'unique_values': {c: df[c].n_unique() for c in df.columns},
+        'example_rows': df.head(5).to_pandas().to_dict(orient='records'),
         'inferred_target': target_col,
         'date_column_used': date_column,
         'month_feature_added': 'month' in df.columns,
-        'graphs': generate_graphs(df, product_name_col, product_type_col)
+        'graphs': generate_graphs(df_pd, product_name_col, product_type_col)
     }
     eda_payload = sanitize_for_json(eda_payload)
 
@@ -154,7 +150,7 @@ def eda_view(request):
     return Response(eda_payload)
 
 
-# ─── TRAIN ─────────────────────────────────────────────────────────────────────
+# ─── TRAIN ──────────────────────────────────────────────────
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
@@ -164,15 +160,15 @@ def train_model_view(request):
     if not file:
         return Response({'error': 'No file uploaded'}, status=400)
 
-    df = pd.read_csv(file)
+    df = pl.read_csv(file)
     model_name = request.data.get('model', 'random_forest')
 
     result = train_model_pipeline(df, model_name)
 
-    # 2) scrub out any NaN/Inf/etc so JSONB accepts it
+    # Scrub JSON
     result = sanitize_for_json(result)
 
-    # save/update with owner=request.user
+    # Save/update with owner=request.user
     filename = file.name
     saved_obj, created = SavedResult.objects.get_or_create(
         owner=request.user,
@@ -191,7 +187,6 @@ def train_model_view(request):
         saved_obj.save()
 
     return Response(result)
-
 
 # ─── SIGNUP / WHOAMI ──────────────────────────────────────────────────────────
 
