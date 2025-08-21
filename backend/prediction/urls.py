@@ -21,7 +21,7 @@ urlpatterns = [
     path('saved-results/', get_saved_results, name='get-saved-results'),
     path('saved-results/delete/<int:result_id>/', delete_result_view, name='delete-result'),
     path('saved-results/edit/<int:pk>/', edit_saved_result),
-    path('saved-results/download/<int:pk>/', download_saved_result),
+    path('saved-results/download/<int:pk>/<str:file_type>/', download_saved_result, name='download-result-file'),
     # Contact Us
     path('contact/', contact_form_view, name='contact-form'),
     # auth

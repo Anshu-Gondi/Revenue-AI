@@ -1,3 +1,4 @@
+import io
 from django.shortcuts import render
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
@@ -5,6 +6,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import SavedResult, ContactMessage
+import polars as pl
+import pandas as pd
 import json
 import csv
 
@@ -12,6 +15,116 @@ import csv
 
 """ Predication Page views """
 
+# ─── Helper: Flatten nested JSON ─────────────────────────────
+def flatten_json(data):
+    def _flatten(d, parent_key="", sep="_"):
+        items = []
+        if isinstance(d, dict):
+            if not d:
+                items.append((parent_key, None))
+            else:
+                for k, v in d.items():
+                    new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                    items.extend(_flatten(v, new_key, sep=sep).items())
+        elif isinstance(d, list):
+            if not d:
+                items.append((parent_key, []))
+            else:
+                for i, v in enumerate(d):
+                    new_key = f"{parent_key}{sep}{i}" if parent_key else str(i)
+                    items.extend(_flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((parent_key, d))
+        return dict(items)
+    return _flatten(data)
+
+# ─── Unified Download: JSON, CSV, Excel ──────────────────────
+import base64, zipfile, io
+from django.http import FileResponse
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_saved_result(request, pk, file_type='json'):
+    obj = SavedResult.objects.filter(pk=pk, owner=request.user).first()
+    if not obj:
+        return Response({'error': 'Not found or not yours'}, status=404)
+
+    # Build combined JSON
+    combined_json = {
+        "id": obj.id,
+        "file_name": obj.file_name,
+        "notes": obj.notes,
+        "uploaded_at": obj.uploaded_at.isoformat(),
+        "inferred_target": obj.inferred_target,
+        "model_name": obj.model_name,
+        "data_shape": obj.data_shape,
+        "eda_result": obj.eda_result or {},
+        "model_result": obj.model_result or {},
+    }
+
+    file_type = file_type.lower()
+
+    # ─── JSON ───────────────────────────────
+    if file_type == 'json':
+        return JsonResponse(combined_json, safe=False)
+
+    # ─── CSV ────────────────────────────────
+    if file_type == 'csv':
+        flat_data = flatten_json(combined_json)
+        df = pl.DataFrame([flat_data])
+        buffer = io.StringIO()
+        df.write_csv(buffer)
+        buffer.seek(0)
+        response = HttpResponse(buffer.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{obj.file_name}.csv"'
+        return response
+
+    # ─── Excel ──────────────────────────────
+    if file_type in ['xlsx', 'excel']:
+        flat_data = flatten_json(combined_json)
+        df = pl.DataFrame([flat_data])
+        buffer = io.BytesIO()
+        df.to_pandas().to_excel(buffer, index=False)
+        buffer.seek(0)
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{obj.file_name}.xlsx"'
+        return response
+
+    # ─── PNG export (decode base64 images) ──
+    if file_type == 'png':
+        graphs = {}
+        if "eda_result" in combined_json:
+            graphs.update(combined_json["eda_result"].get("graphs", {}))
+        if "model_result" in combined_json:
+            graphs.update(combined_json["model_result"].get("graphs", {}))
+
+        if not graphs:
+            return Response({"error": "No graphs available for PNG export"}, status=400)
+
+        # If only one graph → return single PNG
+        if len(graphs) == 1:
+            name, b64 = list(graphs.items())[0]
+            image_data = base64.b64decode(b64)
+            return HttpResponse(image_data, content_type="image/png", headers={
+                "Content-Disposition": f'attachment; filename="{name}.png"'
+            })
+
+        # If multiple graphs → return ZIP
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zipf:
+            for name, b64 in graphs.items():
+                try:
+                    img_data = base64.b64decode(b64)
+                    zipf.writestr(f"{name}.png", img_data)
+                except Exception:
+                    continue
+        zip_buffer.seek(0)
+        return FileResponse(zip_buffer, as_attachment=True, filename=f"{obj.file_name}_graphs.zip")
+
+    return JsonResponse({"error": "Invalid file_type, use 'json', 'csv', 'xlsx' or 'png'."}, status=400)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -59,8 +172,7 @@ def save_result_view(request):
         if isinstance(result_json, str):
             result_json = json.loads(result_json)
 
-        # Decide whether it’s an EDA payload or a model payload
-        # If it has "graphs" or "columns", treat as EDA; otherwise treat as model
+        # Decide EDA vs Model payload
         eda_payload = {}
         model_payload = {}
         if isinstance(result_json, dict):
@@ -69,12 +181,31 @@ def save_result_view(request):
             elif "target_column" in result_json or "rmse" in result_json:
                 model_payload = result_json
             else:
-                # If unsure, just store the entire thing as "eda_result"
                 eda_payload = result_json
         else:
-            # If somehow it’s not a dict, put it under EDA by default
             eda_payload = {}
 
+        # ─── Check if this model was already run for this dataset ───
+        existing_obj = SavedResult.objects.filter(
+            owner=request.user,
+            file_name=file_name,
+            inferred_target=inferred_target,
+            model_name=model_name
+        ).first()
+
+        if existing_obj:
+            # Update the existing entry
+            existing_obj.data_shape = data_shape
+            existing_obj.eda_result = eda_payload
+            existing_obj.model_result = model_payload
+            existing_obj.notes = notes
+            existing_obj.save()
+            return Response({
+                "message": f"Existing result for model '{model_name}' updated successfully.",
+                "id": existing_obj.id
+            })
+
+        # ─── Save new result if it doesn't exist ──────────────────
         saved = SavedResult.objects.create(
             owner=request.user,
             file_name=file_name,
@@ -90,7 +221,6 @@ def save_result_view(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
-
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -112,26 +242,6 @@ def delete_result_view(request, result_id):
         return Response({'error': 'Not found or not yours'}, status=404)
     obj.delete()
     return Response({"message": "Deleted"})
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def download_saved_result(request, pk):
-    obj = SavedResult.objects.filter(pk=pk, owner=request.user).first()
-    if not obj:
-        return Response({'error': 'Not found or not yours'}, status=404)
-    # JSON‑only download
-    return JsonResponse({
-        "id":              obj.id,
-        "file_name":       obj.file_name,
-        "notes":           obj.notes,
-        "uploaded_at":     obj.uploaded_at.isoformat(),
-        "inferred_target": obj.inferred_target,
-        "model_name":      obj.model_name,
-        "data_shape":      obj.data_shape,
-        "eda_result":      obj.eda_result or {},
-        "model_result":    obj.model_result or {},
-    }, safe=False)
 
 """ Contact Page views """
 

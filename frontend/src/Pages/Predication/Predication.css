@@ -248,3 +248,22 @@ button:hover {
   .prediction-title { font-size: 2.2rem; }
   .prediction-section h2 { font-size: 1.75rem; }
 }
+
+.download-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.btn.primary { background: #4CAF50; color: white; }
+.btn.danger { background: #E74C3C; color: white; }
+.btn.small { background: #3498DB; color: white; padding: 4px 8px; }
+.btn:hover { opacity: 0.9; }

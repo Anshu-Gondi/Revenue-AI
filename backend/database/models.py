@@ -13,8 +13,17 @@ class SavedResult(models.Model):
     data_shape      = models.CharField(max_length=50)
     eda_result      = models.JSONField(default=dict, blank=True)
     model_result    = models.JSONField(default=dict, blank=True)
-    model_name = models.CharField(max_length=100, blank=True, null=True, default="")
+    model_name      = models.CharField(max_length=100, blank=True, null=True, default="")
     notes           = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'file_name', 'model_name'],
+                name='unique_owner_file_model'
+            )
+        ]
+        ordering = ['-uploaded_at']
 
     def __str__(self):
         return f"{self.file_name} ({self.owner.username}) – {self.uploaded_at:%Y‑%m‑%d}"

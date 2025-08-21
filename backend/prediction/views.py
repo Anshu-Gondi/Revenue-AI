@@ -77,7 +77,6 @@ def inter_target_column(df: pl.DataFrame):
 
 
 # ─── EDA ────────────────────────────────────────────────────
-
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 @permission_classes([IsAuthenticated])
@@ -109,7 +108,7 @@ def eda_view(request):
     product_name_col = next((c for c in df.columns if 'product' in c.lower() and 'name' in c.lower()), None)
     product_type_col = next((c for c in df.columns if 'product' in c.lower() and ('type' in c.lower() or 'category' in c.lower())), None)
 
-    # Convert Polars → Pandas for some EDA ops (describe, corr, etc.)
+    # Convert Polars → Pandas for some EDA ops
     df_pd = df.to_pandas()
 
     # 3) build payload
@@ -131,27 +130,26 @@ def eda_view(request):
 
     # 4) save/update with owner=request.user
     filename = file.name
-    saved_obj, created = SavedResult.objects.get_or_create(
-        owner=request.user,
-        file_name=filename,
-        defaults={
-            'eda_result': eda_payload,
-            'inferred_target': target_col or '',
-            'data_shape': f"{df.shape[0]} rows, {df.shape[1]} columns",
-            'model_name': '',
-        }
-    )
-    if not created:
-        saved_obj.eda_result      = eda_payload
+    saved_obj = SavedResult.objects.filter(owner=request.user, file_name=filename, model_name='').first()
+    if saved_obj:
+        saved_obj.eda_result = eda_payload
         saved_obj.inferred_target = target_col or saved_obj.inferred_target
-        saved_obj.data_shape      = f"{df.shape[0]} rows, {df.shape[1]} columns"
+        saved_obj.data_shape = f"{df.shape[0]} rows, {df.shape[1]} columns"
         saved_obj.save()
+    else:
+        SavedResult.objects.create(
+            owner=request.user,
+            file_name=filename,
+            model_name='',
+            eda_result=eda_payload,
+            inferred_target=target_col or '',
+            data_shape=f"{df.shape[0]} rows, {df.shape[1]} columns"
+        )
 
     return Response(eda_payload)
 
 
 # ─── TRAIN ──────────────────────────────────────────────────
-
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 @permission_classes([IsAuthenticated])
@@ -164,27 +162,29 @@ def train_model_view(request):
     model_name = request.data.get('model', 'random_forest')
 
     result = train_model_pipeline(df, model_name)
-
-    # Scrub JSON
     result = sanitize_for_json(result)
 
-    # Save/update with owner=request.user
     filename = file.name
-    saved_obj, created = SavedResult.objects.get_or_create(
+    saved_obj = SavedResult.objects.filter(
         owner=request.user,
         file_name=filename,
-        defaults={
-            'model_result': result,
-            'model_name': model_name,
-            'inferred_target': result.get('target_column') or '',
-            'data_shape': f"{df.shape[0]} rows, {df.shape[1]} columns"
-        }
-    )
-    if not created:
-        saved_obj.model_result    = result
-        saved_obj.model_name      = model_name
+        model_name=model_name
+    ).first()
+
+    if saved_obj:
+        saved_obj.model_result = result
         saved_obj.inferred_target = result.get('target_column') or saved_obj.inferred_target
+        saved_obj.data_shape = f"{df.shape[0]} rows, {df.shape[1]} columns"
         saved_obj.save()
+    else:
+        SavedResult.objects.create(
+            owner=request.user,
+            file_name=filename,
+            model_name=model_name,
+            model_result=result,
+            inferred_target=result.get('target_column') or '',
+            data_shape=f"{df.shape[0]} rows, {df.shape[1]} columns"
+        )
 
     return Response(result)
 

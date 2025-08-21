@@ -204,20 +204,47 @@ async function deleteResult(id: number) {
   loadSavedResults();
 }
 
-async function downloadResult(id: number) {
-  const response = await AuthService.fetchWithAuth(
-    `${API_URL}/api/saved-results/download/${id}/`
-  );
-  const data = await response.json();
-  // Offer the JSON blob for download:
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `result_${id}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+async function downloadResult(id: number, fileType: 'json' | 'csv' | 'xlsx' = 'json') {
+  const button = document.activeElement as HTMLButtonElement;
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Downloading...";
+
+  try {
+    const response = await AuthService.fetchWithAuth(
+      `${API_URL}/api/saved-results/download/${id}/${fileType}/`
+    );
+
+    if (!response.ok) throw new Error("Download failed!");
+
+    let blob: Blob;
+    let filename = `result_${id}.${fileType}`;
+    if (fileType === 'json') {
+      const data = await response.json();
+      blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    } else if (fileType === 'csv') {
+      const text = await response.text();
+      blob = new Blob([text], { type: 'text/csv' });
+    } else {
+      const arrayBuffer = await response.arrayBuffer();
+      blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    alert((err as Error).message);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }
 
 // Expose inline handlers
@@ -301,15 +328,34 @@ function renderResultCard(r: any) {
   return `
     <div class="result-card">
       <details>
-        <summary><strong>${r.file_name}</strong> — ${new Date(r.created_at).toLocaleString()}</summary>
-        <p><strong>Model:</strong> ${r.model_name || '—'}</p>
-        <p><strong>Target:</strong> ${r.inferred_target || '—'}</p>
-        <p><strong>Shape:</strong> ${r.data_shape || '—'}</p>
-        <p><strong>Notes:</strong> <span id="note-${r.id}">${r.notes || '—'}</span></p>
-        <textarea id="editNote-${r.id}" rows="2">${r.notes || ''}</textarea><br>
-        <button onclick="editResult(${r.id})">Edit</button>
-        <button onclick="deleteResult(${r.id})">Delete</button>
-        <button onclick="downloadResult(${r.id})">Download JSON</button>
+        <summary>
+          <div class="result-header">
+            <span class="result-title"><strong>${r.file_name}</strong></span>
+            <span class="result-date">${new Date(r.created_at).toLocaleString()}</span>
+          </div>
+        </summary>
+
+        <div class="result-info">
+          <p><strong>Model:</strong> ${r.model_name || '—'}</p>
+          <p><strong>Target:</strong> ${r.inferred_target || '—'}</p>
+          <p><strong>Shape:</strong> ${r.data_shape || '—'}</p>
+          <p><strong>Notes:</strong> <span id="note-${r.id}">${r.notes || '—'}</span></p>
+        </div>
+
+        <div class="result-edit">
+          <textarea id="editNote-${r.id}" rows="2" placeholder="Add notes...">${r.notes || ''}</textarea>
+        </div>
+
+        <div class="result-actions">
+          <button class="btn primary" onclick="editResult(${r.id})">💾 Save</button>
+          <button class="btn danger" onclick="deleteResult(${r.id})">🗑 Delete</button>
+          <div class="download-group">
+            <span>⬇ Download:</span>
+            <button class="btn small" onclick="downloadResult(${r.id}, 'json')">JSON</button>
+            <button class="btn small" onclick="downloadResult(${r.id}, 'csv')">CSV</button>
+            <button class="btn small" onclick="downloadResult(${r.id}, 'xlsx')">Excel</button>
+          </div>
+        </div>
       </details>
     </div>
   `;
