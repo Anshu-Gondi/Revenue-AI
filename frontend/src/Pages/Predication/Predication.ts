@@ -2,6 +2,7 @@ import './Predication.css';
 import { defineTour, startTour } from '../../Components/Tour/Tour';
 import { AuthService } from '../../Services/AuthService';
 import { renderLoader } from '../../Components/Loader/Loader';
+import { showToast } from '../../Components/Toast/Toast';
 
 let lastEDAResult: any = null;
 let lastModelResult: any = null;
@@ -65,10 +66,11 @@ export function renderPredictionPage() {
 
 async function handleEDA() {
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-  const output = document.getElementById("edaOutput")!; // Move this here
+  const output = document.getElementById("edaOutput")!;
 
   if (!fileInput.files?.length) {
-    return alert("Upload a CSV file first.");
+    showToast("Upload a CSV file first.", "error");
+    return;
   }
 
   output.innerHTML = renderLoader();
@@ -85,18 +87,21 @@ async function handleEDA() {
 
   if (data.error) {
     output.innerHTML = `<p style="color:red;">${data.error}</p>`;
+    showToast(data.error, "error");
   } else {
     output.innerHTML = renderEDAOutput(data);
+    showToast("EDA generated successfully.", "success");
   }
 }
 
 async function handleTrain() {
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
   const modelSelect = document.getElementById('modelSelect') as HTMLSelectElement;
-  const output = document.getElementById("trainOutput")!; // Move this here
+  const output = document.getElementById("trainOutput")!;
 
   if (!fileInput.files?.length) {
-    return alert("Upload a CSV file first.");
+    showToast("Upload a CSV file first.", "error");
+    return;
   }
 
   output.innerHTML = renderLoader();
@@ -114,22 +119,26 @@ async function handleTrain() {
 
   if (data.error) {
     output.innerHTML = `<p style="color:red;">${data.error}</p>`;
+    showToast(data.error, "error");
   } else {
     output.innerHTML = renderTrainOutput(data);
+    showToast("Model trained successfully.", "success");
   }
 }
 
 async function handleSaveResult() {
   if (!lastEDAResult && !lastModelResult) {
-    return alert("Generate EDA or train a model first before saving.");
+    showToast("Generate EDA or train a model first before saving.", "error");
+    return;
   }
 
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-  const output = document.getElementById("saveOutput")!; // Declare here
+  const output = document.getElementById("saveOutput")!;
   const container = document.getElementById("savedResultsContainer")!;
 
   if (!fileInput.files?.length) {
-    return alert("Upload a CSV file first.");
+    showToast("Upload a CSV file first.", "error");
+    return;
   }
 
   output.innerHTML = renderLoader(); // Show loader in save output
@@ -154,8 +163,10 @@ async function handleSaveResult() {
 
   if (data.error) {
     output.innerHTML = `<p style="color:red;">${data.error}</p>`;
+    showToast(data.error, "error");
   } else {
     output.innerHTML = `<p style="color:green;">Result saved successfully.</p>`;
+    showToast("Result saved successfully.", "success");
     loadSavedResults(); // Refresh saved results
   }
 }
@@ -167,12 +178,14 @@ async function loadSavedResults() {
   const response = await AuthService.fetchWithAuth(`${API_URL}/api/saved-results/?page=1&page_size=100`);
   if (!response || typeof response.json !== 'function') {
     container.innerHTML = `<p style="color:red;">Failed to fetch results</p>`;
+    showToast("Failed to fetch results", "error");
     return;
   }
   
   const data = await response.json();
   if (data.error) {
     container.innerHTML = `<p style="color:red;">${data.error}</p>`;
+    showToast(data.error, "error");
     return;
   }
 
@@ -191,7 +204,7 @@ async function editResult(id: number) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes })
   });
-  alert('Notes updated.');
+  showToast('Notes updated.', "success");
   loadSavedResults();
 }
 
@@ -200,7 +213,7 @@ async function deleteResult(id: number) {
   await AuthService.fetchWithAuth(`${API_URL}/api/saved-results/delete/${id}/`, {
     method: 'DELETE'
   });
-  alert('Result deleted.');
+  showToast('Result deleted.', "success");
   loadSavedResults();
 }
 
@@ -238,9 +251,10 @@ async function downloadResult(id: number, fileType: 'json' | 'csv' | 'xlsx' = 'j
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    showToast("Download successful.", "success");
 
   } catch (err) {
-    alert((err as Error).message);
+    showToast((err as Error).message, "error");
   } finally {
     button.disabled = false;
     button.textContent = originalText;

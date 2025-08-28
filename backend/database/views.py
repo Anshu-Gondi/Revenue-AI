@@ -1,12 +1,17 @@
+import base64
 import io
+import zipfile
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.http import JsonResponse, HttpResponse
+from django.http import FileResponse, JsonResponse, HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import SavedResult, ContactMessage
 import polars as pl
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
+from PIL import Image as PILImage
 import pandas as pd
 import json
 import csv
@@ -16,6 +21,8 @@ import csv
 """ Predication Page views """
 
 # ─── Helper: Flatten nested JSON ─────────────────────────────
+
+
 def flatten_json(data):
     def _flatten(d, parent_key="", sep="_"):
         items = []
@@ -38,10 +45,8 @@ def flatten_json(data):
         return dict(items)
     return _flatten(data)
 
-# ─── Unified Download: JSON, CSV, Excel ──────────────────────
-import base64, zipfile, io
-from django.http import FileResponse
 
+# ─── Unified Download View ───────────────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def download_saved_result(request, pk, file_type='json'):
@@ -82,9 +87,51 @@ def download_saved_result(request, pk, file_type='json'):
     # ─── Excel ──────────────────────────────
     if file_type in ['xlsx', 'excel']:
         flat_data = flatten_json(combined_json)
-        df = pl.DataFrame([flat_data])
+
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Saved Result"
+
+        # Write key-value pairs (excluding graphs first)
+        row = 1
+        for key, val in flat_data.items():
+            if "graphs" in key:
+                continue  # handle separately
+            ws.cell(row=row, column=1, value=key)
+            ws.cell(row=row, column=2, value=str(val))
+            row += 1
+
+        # Handle graph images
+        graphs = {}
+        graphs.update(combined_json.get("eda_result", {}).get("graphs", {}))
+        graphs.update(combined_json.get("model_result", {}).get("graphs", {}))
+
+        if graphs:
+            ws = wb.create_sheet("Graphs")
+            col, row = 1, 1
+            for name, b64 in graphs.items():
+                try:
+                    img_data = base64.b64decode(b64)
+                    pil_img = PILImage.open(io.BytesIO(img_data))
+                    pil_img = pil_img.convert("RGB")  # ensure correct mode
+
+                    img_buffer = io.BytesIO()
+                    pil_img.save(img_buffer, format="PNG")
+                    img_buffer.seek(0)
+
+                    xl_img = XLImage(img_buffer)
+                    ws.add_image(xl_img, f"A{row}")
+
+                    # caption below image
+                    ws.cell(row=row+15, column=1, value=name)
+                    row += 30
+                except Exception as e:
+                    continue
+
+        # Save to buffer
         buffer = io.BytesIO()
-        df.to_pandas().to_excel(buffer, index=False)
+        wb.save(buffer)
         buffer.seek(0)
         response = HttpResponse(
             buffer.getvalue(),
@@ -93,26 +140,30 @@ def download_saved_result(request, pk, file_type='json'):
         response['Content-Disposition'] = f'attachment; filename="{obj.file_name}.xlsx"'
         return response
 
-    # ─── PNG export (decode base64 images) ──
+    # ─── Graph export (PNG or ZIP) ──────────
     if file_type == 'png':
         graphs = {}
-        if "eda_result" in combined_json:
-            graphs.update(combined_json["eda_result"].get("graphs", {}))
-        if "model_result" in combined_json:
-            graphs.update(combined_json["model_result"].get("graphs", {}))
+        graphs.update(combined_json.get("eda_result", {}).get("graphs", {}))
+        graphs.update(combined_json.get("model_result", {}).get("graphs", {}))
 
         if not graphs:
             return Response({"error": "No graphs available for PNG export"}, status=400)
 
-        # If only one graph → return single PNG
+        # Single graph → return one PNG
         if len(graphs) == 1:
             name, b64 = list(graphs.items())[0]
-            image_data = base64.b64decode(b64)
-            return HttpResponse(image_data, content_type="image/png", headers={
-                "Content-Disposition": f'attachment; filename="{name}.png"'
-            })
+            try:
+                image_data = base64.b64decode(b64)
+                return HttpResponse(
+                    image_data,
+                    content_type="image/png",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{name}.png"'}
+                )
+            except Exception:
+                return Response({"error": "Failed to decode graph image"}, status=500)
 
-        # If multiple graphs → return ZIP
+        # Multiple graphs → return ZIP
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zipf:
             for name, b64 in graphs.items():
@@ -124,24 +175,28 @@ def download_saved_result(request, pk, file_type='json'):
         zip_buffer.seek(0)
         return FileResponse(zip_buffer, as_attachment=True, filename=f"{obj.file_name}_graphs.zip")
 
-    return JsonResponse({"error": "Invalid file_type, use 'json', 'csv', 'xlsx' or 'png'."}, status=400)
+    # ─── Invalid Type ───────────────────────
+    return JsonResponse(
+        {"error": "Invalid file_type, use 'json', 'csv', 'xlsx', or 'png'."}, status=400)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_saved_results(request):
     page_size = int(request.GET.get('page_size', 10))
-    page      = int(request.GET.get('page', 1))
+    page = int(request.GET.get('page', 1))
 
-    qs = SavedResult.objects.filter(owner=request.user).order_by('-uploaded_at')
+    qs = SavedResult.objects.filter(
+        owner=request.user).order_by('-uploaded_at')
     paginator = Paginator(qs, page_size)
-    page_obj  = paginator.page(page)
+    page_obj = paginator.page(page)
 
     data = []
     for r in page_obj.object_list:
         data.append({
             "id":             r.id,
             "file_name":      r.file_name,
-            "inferred_target":r.inferred_target,
+            "inferred_target": r.inferred_target,
             "data_shape":     r.data_shape,
             "result_json": {
                 "eda_result":   r.eda_result or {},
@@ -222,6 +277,7 @@ def save_result_view(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def edit_saved_result(request, pk):
@@ -242,6 +298,7 @@ def delete_result_view(request, result_id):
         return Response({'error': 'Not found or not yours'}, status=404)
     obj.delete()
     return Response({"message": "Deleted"})
+
 
 """ Contact Page views """
 

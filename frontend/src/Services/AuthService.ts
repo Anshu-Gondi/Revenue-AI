@@ -1,9 +1,16 @@
+import { jwtDecode } from "jwt-decode";
+
 export interface Tokens {
   access: string;
   refresh: string;
 }
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+type DecodedToken = { exp: number };
+
+let sessionWarningTimer: number | undefined;
+let sessionExpireTimer: number | undefined;
 
 export class AuthService {
   /** Log in using Google OAuth */
@@ -41,7 +48,6 @@ export class AuthService {
       return data;
     } catch (err: any) {
       console.error('Signup error', err);
-      // Normalize an error object you can show in UI
       return { non_field_errors: [err.detail || err.message || 'Signup failed'] };
     }
   }
@@ -63,10 +69,44 @@ export class AuthService {
     }
   }
 
-  /** Save tokens in localStorage */
+  /** Save tokens in localStorage and start session timers */
   static saveTokens(tokens: Tokens) {
     localStorage.setItem('access', tokens.access);
     localStorage.setItem('refresh', tokens.refresh);
+
+    AuthService.startSessionTimers(tokens.access);
+  }
+
+  /** Start timers to warn and expire session */
+  static startSessionTimers(accessToken: string) {
+    try {
+      const decoded = jwtDecode<DecodedToken>(accessToken);
+      const now = Math.floor(Date.now() / 1000);
+      const expiresIn = decoded.exp - now;
+
+      if (expiresIn <= 0) {
+        AuthService.logout();
+        return;
+      }
+
+      // clear old timers
+      if (sessionWarningTimer) clearTimeout(sessionWarningTimer);
+      if (sessionExpireTimer) clearTimeout(sessionExpireTimer);
+
+      // 1 min before expiry → warn user
+      sessionWarningTimer = window.setTimeout(() => {
+        alert("⚠️ Your session is about to expire. Please log in again to continue.");
+      }, Math.max((expiresIn - 60) * 1000, 0));
+
+      // at expiry → force logout
+      sessionExpireTimer = window.setTimeout(() => {
+        alert("❌ Your session has ended. Please log in again.");
+        AuthService.logout();
+      }, expiresIn * 1000);
+
+    } catch (err) {
+      console.error("Failed to decode token", err);
+    }
   }
 
   /** Remove tokens & redirect to login */
@@ -74,6 +114,9 @@ export class AuthService {
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
     window.location.hash = '#/login';
+
+    if (sessionWarningTimer) clearTimeout(sessionWarningTimer);
+    if (sessionExpireTimer) clearTimeout(sessionExpireTimer);
   }
 
   /** Get the current access token */
@@ -126,7 +169,6 @@ export class AuthService {
           };
           resp = await fetch(input, { ...init, headers });
         } else {
-          // refresh itself failed → log out
           AuthService.logout();
           throw new Error('Session expired, please log in again.');
         }

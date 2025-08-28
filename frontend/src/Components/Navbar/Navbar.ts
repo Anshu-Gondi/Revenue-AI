@@ -16,7 +16,8 @@ export function renderNavbar(): string {
   <div class="navbar-wrapper">
     <nav class="navbar">
       <div class="navbar-logo">Revenue.ai</div>
-      <ul class="navbar-links">
+      <button class="navbar-toggle" id="navbar-toggle" aria-label="Menu">&#9776;</button>
+      <ul class="navbar-links" id="navbar-links">
         <li><a href="#" id="home-link">Home</a></li>
         <li><a href="#" id="predict-link">Predict</a></li>
         <li><a href="#" id="about-link">About</a></li>
@@ -70,4 +71,19 @@ export function attachNavbarAuthListeners(renderers: {
     e.preventDefault();
     AuthService.logout();
   });
+
+  // Hamburger menu toggle for mobile
+  const toggleBtn = document.getElementById('navbar-toggle');
+  const linksEl = document.getElementById('navbar-links');
+  if (toggleBtn && linksEl) {
+    toggleBtn.addEventListener('click', () => {
+      linksEl.classList.toggle('active');
+    });
+    // Optionally close menu when a link is clicked (mobile UX)
+    linksEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        linksEl.classList.remove('active');
+      });
+    });
+  }
 }
