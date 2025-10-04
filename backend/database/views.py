@@ -102,19 +102,33 @@ def download_saved_result(request, pk, file_type='json'):
             ws.cell(row=row, column=2, value=str(val))
             row += 1
 
-        # Handle graph images
+        # Handle graph images (EDA + Model)
         graphs = {}
+
+        # Include EDA graphs
         graphs.update(combined_json.get("eda_result", {}).get("graphs", {}))
-        graphs.update(combined_json.get("model_result", {}).get("graphs", {}))
+
+        # Include model visualizations
+        model_result = combined_json.get("model_result", {})
+        if "graphs" in model_result:
+            graphs.update(model_result["graphs"])
+        if "diagnostic_graphs" in model_result:
+            graphs.update(model_result["diagnostic_graphs"])
+        if model_result.get("forecast_plot_base64"):
+            graphs["forecast_plot"] = model_result["forecast_plot_base64"]
 
         if graphs:
             ws = wb.create_sheet("Graphs")
-            col, row = 1, 1
+            row = 1
+
+            # Add section headers
+            ws.cell(row=row, column=1, value="Graph Visualizations")
+            row += 2
+
             for name, b64 in graphs.items():
                 try:
                     img_data = base64.b64decode(b64)
-                    pil_img = PILImage.open(io.BytesIO(img_data))
-                    pil_img = pil_img.convert("RGB")  # ensure correct mode
+                    pil_img = PILImage.open(io.BytesIO(img_data)).convert("RGB")
 
                     img_buffer = io.BytesIO()
                     pil_img.save(img_buffer, format="PNG")
@@ -123,10 +137,10 @@ def download_saved_result(request, pk, file_type='json'):
                     xl_img = XLImage(img_buffer)
                     ws.add_image(xl_img, f"A{row}")
 
-                    # caption below image
-                    ws.cell(row=row+15, column=1, value=name)
+                    # Caption below image
+                    ws.cell(row=row + 15, column=1, value=name)
                     row += 30
-                except Exception as e:
+                except Exception:
                     continue
 
         # Save to buffer
@@ -144,7 +158,14 @@ def download_saved_result(request, pk, file_type='json'):
     if file_type == 'png':
         graphs = {}
         graphs.update(combined_json.get("eda_result", {}).get("graphs", {}))
-        graphs.update(combined_json.get("model_result", {}).get("graphs", {}))
+
+        model_result = combined_json.get("model_result", {})
+        if "graphs" in model_result:
+            graphs.update(model_result["graphs"])
+        if "diagnostic_graphs" in model_result:
+            graphs.update(model_result["diagnostic_graphs"])
+        if model_result.get("forecast_plot_base64"):
+            graphs["forecast_plot"] = model_result["forecast_plot_base64"]
 
         if not graphs:
             return Response({"error": "No graphs available for PNG export"}, status=400)
@@ -158,7 +179,8 @@ def download_saved_result(request, pk, file_type='json'):
                     image_data,
                     content_type="image/png",
                     headers={
-                        "Content-Disposition": f'attachment; filename="{name}.png"'}
+                        "Content-Disposition": f'attachment; filename="{name}.png"'
+                    }
                 )
             except Exception:
                 return Response({"error": "Failed to decode graph image"}, status=500)
@@ -178,7 +200,6 @@ def download_saved_result(request, pk, file_type='json'):
     # ─── Invalid Type ───────────────────────
     return JsonResponse(
         {"error": "Invalid file_type, use 'json', 'csv', 'xlsx', or 'png'."}, status=400)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

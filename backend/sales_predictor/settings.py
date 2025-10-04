@@ -16,7 +16,12 @@ from dotenv import load_dotenv
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Dynamically detect the project base directory
+BASE_DIR = Path(__file__).resolve()
+
+# Automatically move up until we find 'manage.py' (project root)
+while not (BASE_DIR / 'manage.py').exists() and BASE_DIR.parent != BASE_DIR:
+    BASE_DIR = BASE_DIR.parent
 
 # Load .env
 load_dotenv(BASE_DIR / '.env')
@@ -93,9 +98,10 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # your Vite frontend
+    "http://localhost:5173",  # Vite frontend
     "http://127.0.0.1:5173",
     # Add production URLs here
+    "https://revenue-ai-frontend.onrender.com",
 ]
 
 ROOT_URLCONF = 'sales_predictor.urls'
