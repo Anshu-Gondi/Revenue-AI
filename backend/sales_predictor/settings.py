@@ -16,12 +16,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-# Dynamically detect the project base directory
-BASE_DIR = Path(__file__).resolve()
-
-# Automatically move up until we find 'manage.py' (project root)
-while not (BASE_DIR / 'manage.py').exists() and BASE_DIR.parent != BASE_DIR:
-    BASE_DIR = BASE_DIR.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load .env
 load_dotenv(BASE_DIR / '.env')
