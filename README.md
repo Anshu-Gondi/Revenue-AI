@@ -31,7 +31,7 @@ The goal is not model novelty, but practical usability under limited compute.
 
 ### CPU-Only ML
 
-* PyTorch used in CPU mode
+* PyTorch used in CPU mode (`torch.set_num_threads(2)`)
 * Scikit-learn models preferred for lower memory footprint
 * Thread counts restricted where appropriate
 * Large datasets optionally downsampled
@@ -94,7 +94,7 @@ EDA results returned as:
    * Random Forest
    * XGBoost
    * LightGBM
-   * PyTorch Neural Network
+   * PyTorch Neural Network (CPU, 50 epochs, batch size 16, Adam optimizer)
 
    Metrics computed:
 
@@ -171,7 +171,7 @@ All benchmarks measured on:
 * 2 cores / 2 threads
 * 8GB RAM
 * CPU-only
-* torch.set_num_threads(2)
+* `torch.set_num_threads(2)`
 * Averaged over 3 runs
 
 Dataset capped at 5,000 rows (downsampling logic applied).
@@ -182,3 +182,4 @@ Dataset capped at 5,000 rows (downsampling logic applied).
 | 5k rows      | Random Forest     | 3.2s          | n_jobs=2                  |
 | 5k rows      | PyTorch NN        | ~3–4 min      | 50 epochs, batch=16, Adam |
 
+---
